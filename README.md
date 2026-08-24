@@ -347,7 +347,7 @@ vim /etc/portage/make.conf
 
 ```
 <details>
-    <SUMMARY>EXAMPLE</EXAMPLE>
+    <SUMMARY>
 Adjust the -j value in MAKEOPTS to match your CPU core count (e.g., use -j4 for a 4-core CPU).
 
 
@@ -392,6 +392,7 @@ GENTOO_MIRRORS="https://za.mirrors.cicku.me/gentoo/ \
 FEATURES="${FEATURES} getbinpkg binpkg-request-signature"
 
 ```
+</EXAMPLE>
 </details>
 
 CPU Instruction Set Optimization (CPU_FLAGS_X86) (Click to Expand)
