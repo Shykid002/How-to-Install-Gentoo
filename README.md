@@ -125,6 +125,11 @@ Device Path	Mount Point	Filesystem	Description
 
 ```
 
+<details>
+    <LUKS>Create encrypted LUKS volume</LUKS>
+</details>
+
+
 cfdisk Practical Example (Recommended)
 
 cfdisk is a graphical partitioning tool with a simple, intuitive interface.
