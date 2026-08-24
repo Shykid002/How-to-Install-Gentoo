@@ -204,7 +204,10 @@ sudo mount /dev/sda1 /mnt/gentoo/efi
 
 __7. Create swapfile__
 
+```
 sudo btrfs filesystem mkswapfile --size 4G /mnt/gentoo/swapfile
+
+```
 
 __Enable it:__
 
@@ -226,8 +229,10 @@ __8. Verify__
 lsblk -f
 
 ```
+
+> ⚠️ **Warning:** `cryptsetup luksFormat /dev/sda2` will destroy all existing data on `/dev/sda2`. Make sure `/dev/sda2` is the correct partition before continuing.
     
-</setails>
+</details>
 
 
 cfdisk Practical Example (Recommended)
