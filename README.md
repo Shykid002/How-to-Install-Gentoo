@@ -136,14 +136,14 @@ cfdisk /dev/sdX
 
 Operation tips:
 
-    Select GPT label type.
-    Create ESP: New partition → size 1G → type EFI System.
-    Create Swap: New partition → size 4G → type Linux swap.
-    Create Root: New partition → remaining space → type Linux filesystem (default).
+    Select `GPT` label type.
+    Create `ESP`: New partition → size 1G → type EFI System.
+    Create `Swap`: New partition → size 4G → type Linux swap.
+    Create `Root`: New partition → remaining space → type Linux filesystem (default).
     Select Write to write changes, type yes to confirm.
     Select Quit to exit.
 
-Advanced Settings: fdisk Command-Line Partitioning (Click to Expand)
+Advanced Settings: `fdisk` Command-Line Partitioning (Click to Expand)
 
 
 __3. Create Filesystems and Mount__
@@ -158,7 +158,7 @@ mkfs.xfs /dev/sdX        # Format Root partition as XFS
 ```
 
 
-For Btrfs:
+For `Btrfs`:
 
 ```
 mkfs.btrfs -L gentoo /dev/sdX
