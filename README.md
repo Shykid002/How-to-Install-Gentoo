@@ -276,7 +276,7 @@ wget "https://distfiles.gentoo.org/releases/amd64/autobuilds/${STAGE3}.asc"
 ```
 
 
-Alternative: Visit https://www.gentoo.org/downloads/, right-click your chosen Stage3 variant → "Copy link address", then paste after wget.
+[Alternative: Visit] (https://www.gentoo.org/downloads/), right-click your chosen Stage3 variant → "Copy link address", then paste after wget.
 
 ```
 # Verify signature (recommended)
@@ -346,7 +346,8 @@ Edit /etc/portage/make.conf:
 vim /etc/portage/make.conf
 
 ```
-
+<details>
+    <SUMMARY>EXAMPLE</EXAMPLE>
 Adjust the -j value in MAKEOPTS to match your CPU core count (e.g., use -j4 for a 4-core CPU).
 
 
@@ -391,6 +392,7 @@ GENTOO_MIRRORS="https://za.mirrors.cicku.me/gentoo/ \
 FEATURES="${FEATURES} getbinpkg binpkg-request-signature"
 
 ```
+</details>
 
 CPU Instruction Set Optimization (CPU_FLAGS_X86) (Click to Expand)
 
