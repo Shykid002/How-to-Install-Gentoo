@@ -127,6 +127,106 @@ Device Path	Mount Point	Filesystem	Description
 
 <details>
     <summary>Create encrypted LUKS volume</summary>
+    
+__1. Create LUKS2__
+From the Gentoo/EndeavourOS live environment:
+    
+```
+sudo cryptsetup luksFormat /dev/sda2
+    
+```
+__2. Open the encrypted partition__
+
+```
+sudo cryptsetup open /dev/sda2 cryptroot
+
+```
+You'll now have: `/dev/mapper/cryptroot` check `lsblk`
+
+__3. Create Btrfs inside LUKS__
+
+```
+sudo mkfs.btrfs -L gentoo /dev/mapper/cryptroot
+
+```
+
+__4. Mount it temporarily__
+
+```
+sudo mount /dev/mapper/cryptroot /mnt/gentoo
+
+```
+
+__5. Create Btrfs subvolumes__
+
+For a simple Gentoo installation:
+
+```
+sudo btrfs subvolume create /mnt/gentoo/@
+sudo btrfs subvolume create /mnt/gentoo/@home
+
+```
+
+__Then unmount:__
+
+```
+sudo umount /mnt/gentoo
+
+```
+
+__6. Mount the root subvolume__
+
+```
+sudo mount -o subvol=@,compress=zstd /dev/mapper/cryptroot /mnt/gentoo
+
+```
+
+__Create the mount points:__
+
+```
+sudo mkdir -p /mnt/gentoo/{home,efi}
+
+```
+
+__Mount @home:__
+
+```
+sudo mount -o subvol=@home,compress=zstd /dev/mapper/cryptroot /mnt/gentoo/home
+
+```
+
+__Mount your EFI partition:__
+
+```
+sudo mount /dev/sda1 /mnt/gentoo/efi
+
+```
+
+__7. Create swapfile__
+
+sudo btrfs filesystem mkswapfile --size 4G /mnt/gentoo/swapfile
+
+__Enable it:__
+
+```
+sudo swapon /mnt/gentoo/swapfile
+
+```
+
+__Verify:__
+
+```
+swapon --show
+
+```
+
+__8. Verify__
+
+```
+lsblk -f
+
+```
+    
 </setails>
 
 
