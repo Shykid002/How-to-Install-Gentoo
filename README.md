@@ -1,6 +1,6 @@
-0. Prepare Installation Media
+__0. Prepare Installation Media__
 
-0.1 Download Gentoo ISO
+__0.1 Download Gentoo ISO__
 
 Obtain the download link from the downloads page
 
