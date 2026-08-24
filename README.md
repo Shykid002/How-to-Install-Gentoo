@@ -42,7 +42,7 @@ gpg --verify install-amd64-minimal-<latest-version>.iso.asc install-amd64-minima
 ```
 
 
-0.2 Create Bootable USB
+__0.2 Create Bootable USB__
 
 Linux:
 
@@ -55,7 +55,7 @@ sudo dd if=install-amd64-minimal-<latest-version>.iso of=/dev/sdX bs=4M status=p
 Windows: Use Rufus → Select ISO → Choose DD mode when writing.
 
 
-1. Enter Live Environment and Connect to Network
+__1. Enter Live Environment and Connect to Network__
 
 ```
 nmtui   # interactive: pick "Activate a connection" or "Edit a connection"
@@ -71,7 +71,7 @@ ping -c3 gentoo.org
 
 If you prefer manual configuration use the sections below.
 
-1.1 Wired Network (manual)
+__1.1 Wired Network (manual)__
 
 
 ```
@@ -82,7 +82,7 @@ ping -c3 gentoo.org  # Test network connectivity
 ```
 
 
-1.2 Wireless Network (manual)
+__1.2 Wireless Network (manual)__
 
 Interactive helper:
 
@@ -108,7 +108,7 @@ If WPA3 is unstable, try falling back to WPA2.
 TODO:Advanced Settings: Enable SSH for Remote Access (Click to Expand)
 
 
-2. Plan Disk Partitioning
+__2. Plan Disk Partitioning__
 
 
 Recommended Partition Scheme (UEFI)
@@ -146,9 +146,9 @@ Operation tips:
 Advanced Settings: fdisk Command-Line Partitioning (Click to Expand)
 
 
-3. Create Filesystems and Mount
+__3. Create Filesystems and Mount__
 
-3.1 Format
+__3.1 Format__
 
 ```
 mkfs.fat -F 32 -n "EFI" /dev/sdX  # Format ESP partition as FAT32
@@ -172,7 +172,7 @@ mkfs.ext4 /dev/sdX
 
 ```
 
-3.2 Mount (XFS example)
+__3.2 Mount (XFS example)__
 
 ```
 mount /dev/sdX /mnt/gentoo        # Mount root partition
@@ -183,7 +183,7 @@ swapon /dev/sdX                   # Enable Swap partition
 ```
 
 
-Advanced Settings: Btrfs Subvolume Example (Click to Expand)
+__Advanced Settings: Btrfs Subvolume Example (Click to Expand)__
 
 1. Format
 
@@ -223,7 +223,7 @@ lsblk
 ```
 
 
-Btrfs Snapshot Recommendation
+__Btrfs Snapshot Recommendation__
 
 It is recommended to use Snapper to manage snapshots. A proper subvolume layout (e.g., separating @ and @home) makes system rollback much easier.
 
@@ -249,16 +249,16 @@ NAME             MAJ:MIN RM   SIZE RO TYPE  MOUNTPOINTS
 ```
 
 
-4. Download Stage3 and Enter chroot
+__4. Download Stage3 and Enter chroot__
 
-4.1 Choose Stage3
+__4.1 Choose Stage3__
 
     OpenRC: stage3-amd64-openrc-*.tar.xz
     systemd: stage3-amd64-systemd-*.tar.xz
     Desktop variants just have some USE flags pre-enabled; the standard version is more flexible.
 
 
-4.2 Download and Extract
+__4.2 Download and Extract__
 
 
 ```
@@ -288,7 +288,7 @@ tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner
 
 ```
 
-4.3 Copy DNS and Mount Pseudo-Filesystems
+__4.3 Copy DNS and Mount Pseudo-Filesystems__
 
 ```
 cp --dereference /etc/resolv.conf /mnt/gentoo/etc/ # Copy DNS configuration
@@ -303,7 +303,7 @@ mount --make-rslave /mnt/gentoo/run
 ```
 
 
-4.4 Enter chroot
+__4.4 Enter chroot__
 
 ```
 chroot /mnt/gentoo /bin/bash    # Switch root directory to new system
@@ -313,9 +313,9 @@ export PS1="(chroot) ${PS1}"    # Modify prompt to distinguish environment
 ```
 
 
-5. Initialize Portage and make.conf
+__5. Initialize Portage and make.conf__
 
-5.1 Sync Tree
+__5.1 Sync Tree__
 
 ```
 emerge-webrsync   # Get the latest Portage snapshot (faster than rsync)
@@ -338,7 +338,7 @@ getuto
 
 ```
 
-5.2 make.conf Example
+__5.2 make.conf Example__
 
 Edit /etc/portage/make.conf:
 
@@ -407,9 +407,9 @@ cpuid2cpuflags >> /etc/portage/make.conf
 
 ```
 
-6. Profile, System Settings & Localization
+__6. Profile, System Settings & Localization__
 
-6.1 Choose Profile
+__6.1 Choose Profile__
 
 ```
 eselect profile list          # List all available profiles
@@ -427,7 +427,7 @@ Common options:
 
 ```
 
-6.2 Timezone and Locale
+__6.2 Timezone and Locale__
 
 ```
 # Set timezone (use your actual timezone)
@@ -446,7 +446,7 @@ env-update && source /etc/profile && export PS1="(chroot) ${PS1}"
 
 ```
 
-6.3 Hostname and Network Configuration
+__6.3 Hostname and Network Configuration__
 
 Set hostname:
 
@@ -467,7 +467,7 @@ systemctl enable NetworkManager
 ```
 
 
-6.4 Configure fstab
+__6.4 Configure fstab__
 
 genfstab ships in the sys-fs/genfstab package (originally from Arch)
 
@@ -477,7 +477,7 @@ emerge --ask sys-fs/genfstab
 
 ```
 
-Standard usage (run outside chroot):
+Standard usage (run outside `chroot`):
 
 ```
 # 1. Confirm all partitions are correctly mounted
@@ -492,9 +492,9 @@ cat /mnt/gentoo/etc/fstab
 
 ```
 
-If you've already chrooted into the new system, you can:
+If you've already `chrooted` into the new system, you can:
 
-Method 1: Run inside chroot (simplest)
+Method 1: Run inside `chroot` (simplest)
 
 ```
 emerge --ask sys-fs/genfstab
@@ -503,7 +503,7 @@ nvim /etc/fstab  # Check and clean up extra entries (e.g., /proc, /sys, /dev)
 
 ```
 
-Method 1: Run inside chroot (simplest)
+Method 1: Run inside `chroot` (simplest)
 
 ```
 emerge --ask sys-fs/genfstab
@@ -532,9 +532,9 @@ genfstab -U /mnt/gentoo >> /mnt/gentoo/etc/fstab
 
 ```
 
-3. Press Ctrl+Alt+F1 to return to chroot
+3. Press Ctrl+Alt+F1 to return to `chroot`
 
-Prerequisite: every partition must already be mounted correctly (including Btrfs subvolumes and unlocked LUKS partitions) before you run genfstab
+Prerequisite: every partition must already be mounted correctly (including Btrfs subvolumes and unlocked LUKS partitions) before you run `genfstab`
 
 
 Method B: Manual Edit
@@ -554,7 +554,7 @@ Output example:
 
 ```
 
-2. Edit fstab
+2. Edit `fstab`
 
 ```
 nvim /etc/fstab
@@ -576,18 +576,18 @@ fstab fields
 Field	Meaning
 UUID	Unique filesystem identifier (get it from blkid)
 Mount	Mount point (none for swap)
-Type	vfat, ext4, xfs, btrfs, swap, etc.
+Type	`vfat`, `ext4`, `xfs`, `btrfs`, `swap`, etc.
 Options	Comma-separated mount options
-dump	Backup flag — usually 0
-fsck	Boot-time check order: 1 = root, 2 = others, 0 = skip
+dump	Backup flag — usually `0`
+fsck	Boot-time check order: `1` = root, `2` = others, `0` = skip
 
 
 
 Btrfs subvolume configuration
 
-With genfstab:
+With `genfstab`:
 
-If the Btrfs subvolumes are already mounted correctly, genfstab -U picks up subvol= automatically.
+If the `Btrfs` subvolumes are already mounted correctly, `genfstab -U` picks up `subvol=` automatically.
 
 ```
 # Confirm subvolume mounts
@@ -618,27 +618,27 @@ UUID=7E91-5869                             /efi    vfat   defaults,noatime,fmask
 ```
 
 
-Common Btrfs mount options
+Common `Btrfs` mount options
 
 Option	             Meaning
-compress=zstd:3	     zstd compression at level 3 (good performance/ratio balance)
-discard=async	     Async TRIM (recommended for SSDs)
-space_cache=v2	     v2 space cache (default; better performance)
-subvol=@	         The subvolume to mount
-noatime	             Skip access-time updates (slight performance win)
+`compress=zstd:3`	     `zstd` compression at level 3 (good performance/ratio balance)
+`discard=async`	          Async TRIM (recommended for SSDs)
+`space_cache=v2`	      v2 space cache (default; better performance)
+`subvol=@`	              The subvolume to mount
+`noatime`	              Skip access-time updates (slight performance win)
 
 
 
 Notes
 
-    All subvolumes of the same Btrfs partition share the same UUID.
-    Always use blkid to read your real UUIDs.
+   - All subvolumes of the same Btrfs partition share the same UUID.
+   - Always use blkid to read your real UUIDs.
 
 
 
-7. Kernel and Firmware
+__7. Kernel and Firmware__
 
-7.1 Quick Option: Pre-compiled Kernel
+__7.1 Quick Option: Pre-compiled Kernel__
 
 ```
 emerge --ask sys-kernel/gentoo-kernel-bin
@@ -652,7 +652,7 @@ grub-mkconfig -o /boot/grub/grub.cfg
 
 ```
 
-7.2 Install Firmware and Microcode
+__7.2 Install Firmware and Microcode__
 
 ```
 mkdir -p /etc/portage/package.license
@@ -672,9 +672,9 @@ emerge --ask sys-firmware/intel-microcode  # Intel CPU users
 ```
 
 
-8. Base Tools
+__8. Base Tools__
 
-8.1 System Service Tools
+__8.1 System Service Tools__
 
 systemd includes built-in logging and scheduled task services, no additional installation needed.
 
@@ -685,7 +685,7 @@ systemctl enable --now systemd-timesyncd
 
 ```
 
-8.2 Filesystem Tools
+__8.2 Filesystem Tools__
 
 Install tools for your chosen filesystem (required):
 
@@ -697,7 +697,7 @@ emerge --ask sys-fs/btrfs-progs # Btrfs
 
 ```
 
-9. Create Users and Permissions
+__9. Create Users and Permissions__
 
 ```
 passwd root # Set root password
@@ -721,9 +721,9 @@ Uncomment the following line (remove the # at the beginning):
 
 ```
 
-10. Install Bootloader
+__10. Install Bootloader__
 
-10.1 Option A: GRUB (Recommended/Standard)
+__10.1 Option A: GRUB (Recommended/Standard)__
 
 GRUB is the most feature-complete bootloader with the best compatibility, and supports automatic Windows detection.
 
@@ -754,9 +754,9 @@ grub-mkconfig -o /boot/grub/grub.cfg
 
 ```
 
-11. Final Steps
+__11. Final Steps__
 
-11.1 Final Checklist
+__11.1 Final Checklist__
 
 1. emerge --info runs without errors
 
@@ -768,7 +768,7 @@ grub-mkconfig -o /boot/grub/grub.cfg
 
 5. If using LUKS, confirm initramfs includes cryptsetup
 
-11.2 Exit Chroot and Reboot
+__11.2 Exit Chroot and Reboot__
 
 After confirming everything is correct, exit the chroot environment and unmount:
 
