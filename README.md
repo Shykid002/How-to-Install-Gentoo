@@ -125,9 +125,9 @@ Device Path	Mount Point	Filesystem	Description
 
 ```
 
-<details>
+<LUKS>
     <LUKS>Create encrypted LUKS volume</LUKS>
-</details>
+</LUKS>
 
 
 cfdisk Practical Example (Recommended)
