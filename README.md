@@ -152,6 +152,13 @@ sudo mkfs.btrfs -L gentoo /dev/mapper/cryptroot
 
 __4. Mount it temporarily__
 
+-CREATE GENTOO MOUNT POINT
+
+```
+sudo mkdir -p /mnt/gentoo
+
+```
+
 ```
 sudo mount /dev/mapper/cryptroot /mnt/gentoo
 
