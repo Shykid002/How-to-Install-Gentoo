@@ -1,473 +1,427 @@
-__0. Prepare Installation Media__
+One important warning first: the commands below destroy /dev/sda2 completely.
+Make sure `/dev/sda1` is actually your EFI partition and `/dev/sda2` is the partition
+you intend to encrypt before running the storage commands.
 
-__0.1 Download Gentoo ISO__
+Gentoo Linux — `systemd` + `LUKS2` + `Btrfs`
+MacBook Air 2017 — copy-paste-ready installation
 
-Obtain the download link from the downloads page
-
-Note
-
-The date in the links below (e.g. 20251123T...) is for reference only. Always select the latest dated file from the mirror.
-
-Download the Minimal ISO (using official Gentoo mirrors):
-
-```
-# Use mirrorselect to find the closest mirror
-emerge --ask app-portage/mirrorselect
-mirrorselect -i -r -D
-
-# Or download directly from the official mirror list:
-# https://www.gentoo.org/downloads/mirrors/
-wget https://distfiles.gentoo.org/releases/amd64/autobuilds/<latest-version>/install-amd64-minimal-latest-version.iso
-wget https://distfiles.gentoo.org/releases/amd64/autobuilds/<latest-version>/install-amd64-minimal-latest-version.iso.asc
+The resulting layout will be:
 
 ```
 
-GRAPHICAL INSTALLATION: Use the LiveGUI USB Image
-
-If you want to use a browser during installation or connect to Wi-Fi more easily, choose the LiveGUI USB Image from the official downloads page OR use ENDEAVOUROS liveGUI which is arch linux base distro
-
-
-Verify signature (recommended):
-
-```
-# Import the Gentoo release signing key.
-# Preferred: use the local copy that ships with Live media or sys-apps/openpgp-keys-gentoo-release
-gpg --import /usr/share/openpgp-keys/gentoo-release.asc
-# Fallback (no local key — needs network access to keys.gentoo.org):
-#   gpg --keyserver hkps://keys.gentoo.org --recv-keys D99EAC7379A850BCE47DA5F29E6438C817072058
-
-# Verify the ISO signature
-gpg --verify install-amd64-minimal-<latest-version>.iso.asc install-amd64-minimal-latest-version.iso
-
-```
+    /dev/sda
+    ├── /dev/sda1       EFI System Partition
+    └── /dev/sda2       LUKS2
+          │
+          └── cryptroot
+                │
+                └── Btrfs
+                     ├── @
+                     ├── @home
+                     ├── @snapshots
+                     └── @swap
+                          └── swapfile
 
 
-__0.2 Create Bootable USB__
+``` 
 
-Linux:
 
-```
-sudo dd if=install-amd64-minimal-<latest-version>.iso of=/dev/sdX bs=4M status=progress oflag=sync
-# Replace sdX with your USB device name (e.g., /dev/sdb)
+_Step 1 — Boot the Live USB_
+
+Boot a Gentoo Minimal Installation CD/USB or another Linux live environment.
+
+-Check the disks first:
 
 ```
+!#bash
 
-Windows: Use Rufus → Select ISO → Choose DD mode when writing.
-
-
-__1. Enter Live Environment and Connect to Network__
-
-```
-nmtui   # interactive: pick "Activate a connection" or "Edit a connection"
+lsblk -f
 
 ```
 
-Confirm with:
+You should identify something resembling:
 
 ```
-ping -c3 gentoo.org
-
-```
-
-If you prefer manual configuration use the sections below.
-
-__1.1 Wired Network (manual)__
-
-
-```
-ip link              # View network interface names (e.g. eno1, eth0)
-dhcpcd eno1          # Enable DHCP on the wired interface
-ping -c3 gentoo.org  # Test network connectivity
+    sda
+    ├─sda1   vfat
+    └─sda2
 
 ```
 
+Do not blindly assume `/dev/sda2` is correct. On some systems the disk may appear as a different device.
 
-__1.2 Wireless Network (manual)__
-
-Interactive helper:
-
+Check networking:
 
 ```
-net-setup
+!#bash
 
-```
-
-
-wpa_supplicant (fill in your interface, SSID, password):
-
-```
-wpa_passphrase "SSID" "PASSWORD" | tee /etc/wpa_supplicant/wpa_supplicant.conf
-wpa_supplicant -B -i wlp0s20f3 -c /etc/wpa_supplicant/wpa_supplicant.conf
-dhcpcd wlp0s20f3
+    ping -c 3 gentoo.org
 
 ```
 
-If WPA3 is unstable, try falling back to WPA2.
-
-
-TODO:Advanced Settings: Enable SSH for Remote Access (Click to Expand)
-
-
-__2. Plan Disk Partitioning__
-
-
-Recommended Partition Scheme (UEFI)
-
-The table below provides a recommended default partition layout for a Gentoo installation.
-Device Path	Mount Point	Filesystem	Description
+-Set the variables:
 
 ```
-/dev/sdX	/efi	vfat	EFI System Partition (ESP)
-
-/dev/sdX	swap	swap	Swap partition
-
-/dev/sdX	/	xfs	Root partition
+    export DEV_EFI="/dev/sda1"
+    export DEV_LUKS="/dev/sda2"
+    export MAPPER_NAME="cryptroot"
+    export LUKS_PATH="/dev/mapper/${MAPPER_NAME}"
 
 ```
 
-<details>
-    <summary>Create encrypted LUKS volume</summary>
-    
-__1. Create LUKS2__
-From the Gentoo/EndeavourOS live environment:
-    
-```
-sudo cryptsetup luksFormat /dev/sda2
-    
-```
-__2. Open the encrypted partition__
+-Verify them:
 
 ```
-sudo cryptsetup open /dev/sda2 cryptroot
+!#bash
 
-```
-You'll now have: `/dev/mapper/cryptroot` check `lsblk`
-
-__3. Create Btrfs inside LUKS__
-
-```
-sudo mkfs.btrfs -L gentoo /dev/mapper/cryptroot
+    echo "EFI:  $DEV_EFI"
+    echo "LUKS: $DEV_LUKS"
+    echo "Mapper: $LUKS_PATH"
 
 ```
 
-__4. Mount it temporarily__
+_Step 2 — Create the LUKS2 + Btrfs storage layout_
 
--CREATE GENTOO MOUNT POINT
+**⚠️ DESTROYS the data on /dev/sda2**
 
-```
-sudo mkdir -p /mnt/gentoo
 
-```
+-First, make absolutely sure:
 
 ```
-sudo mount /dev/mapper/cryptroot /mnt/gentoo
+lsblk -f "$DEV_LUKS"
 
 ```
 
-__5. Create Btrfs subvolumes__
-
-For a simple Gentoo installation:
+-Then create the LUKS2 container:
 
 ```
-sudo btrfs subvolume create /mnt/gentoo/@
-sudo btrfs subvolume create /mnt/gentoo/@home
+cryptsetup luksFormat --type luks2 "$DEV_LUKS"
 
 ```
 
-__Then unmount:__
+-Open it:
 
 ```
-sudo umount /mnt/gentoo
-
-```
-
-__6. Mount the root subvolume__
-
-```
-sudo mount -o subvol=@,compress=zstd /dev/mapper/cryptroot /mnt/gentoo
+cryptsetup open "$DEV_LUKS" "$MAPPER_NAME"
 
 ```
 
-__Create the mount points:__
 
-```
-sudo mkdir -p /mnt/gentoo/{home,efi}
-
-```
-
-__Mount @home:__
-
-```
-sudo mount -o subvol=@home,compress=zstd /dev/mapper/cryptroot /mnt/gentoo/home
-
-```
-
-__Mount your EFI partition:__
-
-```
-sudo mount /dev/sda1 /mnt/gentoo/efi
-
-```
-
-__7. Create swapfile__
-
-```
-sudo btrfs filesystem mkswapfile --size 4G /mnt/gentoo/swapfile
-
-```
-
-__Enable it:__
-
-```
-sudo swapon /mnt/gentoo/swapfile
-
-```
-
-__Verify:__
-
-```
-swapon --show
-
-```
-
-__8. Verify__
+-Verify:
 
 ```
 lsblk -f
 
 ```
 
-> ⚠️ **Warning:** `cryptsetup luksFormat /dev/sda2` will destroy all existing data on `/dev/sda2`. Make sure `/dev/sda2` is the correct partition before continuing.
-    
-</details>
-
-
-cfdisk Practical Example (Recommended)
-
-cfdisk is a graphical partitioning tool with a simple, intuitive interface.
+-You should now see:
 
 ```
-cfdisk /dev/sdX
+cryptroot
 
 ```
 
-Operation tips:
-
-    Select GPT label type.
-    Create ESP:  New partition → size 1G → type EFI System.
-    Create Swap: New partition → size 4G → type Linux swap.
-    Create Root: New partition → remaining space → type Linux filesystem (default).
-    Select Write to write changes, type yes to confirm.
-    Select Quit to exit.
-
-Advanced Settings: `fdisk` Command-Line Partitioning (Click to Expand)
-
-
-__3. Create Filesystems and Mount__
-
-__3.1 Format__
+-Create the Btrfs filesystem:
 
 ```
-mkfs.fat -F 32 -n "EFI" /dev/sdX  # Format ESP partition as FAT32
-mkswap /dev/sdX          # Format Swap partition
-mkfs.xfs /dev/sdX        # Format Root partition as XFS
+mkfs.btrfs -L gentoo_root "$LUKS_PATH"
+
+```
+
+-Mount the Btrfs filesystem temporarily:
+
+```
+mkdir -p /mnt/gentoo
+mount "$LUKS_PATH" /mnt/gentoo
 
 ```
 
 
-For `Btrfs`:
+-Create the subvolumes:
 
 ```
-mkfs.btrfs -L gentoo /dev/sdX
-
-```
-
-For ext4:
-
-```
-mkfs.ext4 /dev/sdX
-
-```
-
-__3.2 Mount (XFS example)__
-
-```
-mount /dev/sdX /mnt/gentoo        # Mount root partition
-mkdir -p /mnt/gentoo/efi                # Create ESP mount point
-mount /dev/sdX /mnt/gentoo/efi    # Mount ESP partition
-swapon /dev/sdX                   # Enable Swap partition
-
-```
-
-
-__Advanced Settings: Btrfs Subvolume Example (Click to Expand)__
-
-1. Format
-
-```
-mkfs.fat -F 32 /dev/sdX  # Format ESP
-mkswap /dev/sdX          # Format Swap
-mkfs.btrfs -L gentoo /dev/sdX # Format Root (Btrfs)
-
-```
-
-2. Create subvolumes
-
-```
-mount /dev/sdX /mnt/gentoo
 btrfs subvolume create /mnt/gentoo/@
 btrfs subvolume create /mnt/gentoo/@home
+btrfs subvolume create /mnt/gentoo/@snapshots
+btrfs subvolume create /mnt/gentoo/@swap
+
+```
+
+-Check them:
+
+```
+btrfs subvolume list /mnt/gentoo
+
+```
+
+-Unmount:
+
+```
 umount /mnt/gentoo
 
 ```
 
-3. Mount subvolumes
+_Step 3 — Mount the final Btrfs layout_
+
+-Mount root:
 
 ```
-mount -o compress=zstd,subvol=@ /dev/sdX /mnt/gentoo
-mkdir -p /mnt/gentoo/{efi,home}
-mount -o subvol=@home /dev/sdX /mnt/gentoo/home
-mount /dev/sdX /mnt/gentoo/efi    # Note: ESP must be FAT32
-swapon /dev/sdX
-
-```
-
-4. Verify mounts
-
-```
-lsblk
+mount -o noatime,compress=zstd:3,subvol=@ "$LUKS_PATH" /mnt/gentoo
 
 ```
 
 
-__Btrfs Snapshot Recommendation__
-
-It is recommended to use Snapper to manage snapshots. A proper subvolume layout (e.g., separating @ and @home) makes system rollback much easier.
-
-
-Recommendation
-
-After mounting, use lsblk to verify mount points are correct.
-
+-Create directories:
 
 ```
-lsblk
+mkdir -p /mnt/gentoo/{home,snapshots,swap,efi}
 
 ```
 
+-Mount /home:
 
 ```
-NAME             MAJ:MIN RM   SIZE RO TYPE  MOUNTPOINTS
- nvme0n1          259:1    0 931.5G  0 disk
-├─/dev/sdX      259:7    0     1G  0 part  /efi
-├─/dev/sdX      259:8    0     4G  0 part  [SWAP]
-└─/dev/sdX      259:9    0 926.5G  0 part  /
+mount -o noatime,compress=zstd:3,subvol=@home \
+    "$LUKS_PATH" /mnt/gentoo/home
+
+```
+
+-Mount snapshots:
+
+```
+mount -o noatime,compress=zstd:3,subvol=@snapshots \
+    "$LUKS_PATH" /mnt/gentoo/snapshots
 
 ```
 
 
-__4. Download Stage3 and Enter chroot__
+-Mount swap subvolume:
 
-__4.1 Choose Stage3__
+```
+mount -o noatime,subvol=@swap \
+    "$LUKS_PATH" /mnt/gentoo/swap
 
-    OpenRC: stage3-amd64-openrc-*.tar.xz
-    systemd: stage3-amd64-systemd-*.tar.xz
-    Desktop variants just have some USE flags pre-enabled; the standard version is more flexible.
+```
 
 
-__4.2 Download and Extract__
+-Mount EFI:
 
+```
+mount "$DEV_EFI" /mnt/gentoo/efi
+
+```
+
+
+-Check everything:
+
+```
+findmnt /mnt/gentoo
+
+```
+
+
+-You should have something along the lines of:
+
+```
+/mnt/gentoo
+/mnt/gentoo/home
+/mnt/gentoo/snapshots
+/mnt/gentoo/swap
+/mnt/gentoo/efi
+
+```
+
+
+_Step 4 — Create the Btrfs swapfile_
+
+
+For Btrfs, use the filesystem's swapfile support rather than simply creating a normal file with `dd`.
+
+-First check your Btrfs tools:
+
+```
+btrfs --version
+
+```
+
+-Create a 4 GiB swapfile:
+
+```
+btrfs filesystem mkswapfile --size 4g /mnt/gentoo/swap/swapfile
+
+```
+
+-Activate it:
+
+```
+swapon /mnt/gentoo/swap/swapfile
+
+```
+
+
+-Verify:
+
+```
+swapon --show
+
+```
+
+
+-You should see:
+
+```
+/mnt/gentoo/swap/swapfile
+
+```
+
+Why 4 GiB? Your MacBook has 8 GiB RAM, so 4 GiB is a reasonable basic swap allocation.
+If you intend to use hibernation, the swap strategy should be sized/configured differently.
+
+
+_Step 5 — Download the Gentoo Stage 3_
+
+-Enter the installation root:
 
 ```
 cd /mnt/gentoo
 
-# Gentoo provides a txt file with the latest Stage3 path — use it to auto-detect:
-# For OpenRC:
-STAGE3=$(wget -qO- https://distfiles.gentoo.org/releases/amd64/autobuilds/latest-stage3-amd64-openrc.txt | grep -v '^#' | cut -d' ' -f1)
-# For systemd:
-# STAGE3=$(wget -qO- https://distfiles.gentoo.org/releases/amd64/autobuilds/latest-stage3-amd64-systemd.txt | grep -v '^#' | cut -d' ' -f1)
+```
 
-wget "https://distfiles.gentoo.org/releases/amd64/autobuilds/${STAGE3}"
-wget "https://distfiles.gentoo.org/releases/amd64/autobuilds/${STAGE3}.asc"
+Rather than hard-coding an old timestamped URL, use the current Gentoo Stage 3 download listed by
+Gentoo for your installation date.
+
+For example, once you've selected the current amd64 systemd desktop Stage 3, download it with:
+
+```
+
+wget '<CURRENT_STAGE3_URL>'
+
+#Then extract:
+
+tar xpvf stage3-*.tar.xz \
+    --xattrs-include='*.*' \
+    --numeric-owner
+
+```
+
+-Verify:
+
+```
+ls
+
+```
+
+-You should see:
+
+```
+#bash
+
+bin
+boot
+dev
+etc
+home
+lib
+mnt
+opt
+proc
+root
+run
+sbin
+sys
+tmp
+usr
+var
 
 ```
 
 
-[Alternative: Visit] (https://www.gentoo.org/downloads/), right-click your chosen Stage3 variant → "Copy link address", then paste after wget.
+_Step 6 — Prepare the chroot_
+
+-Bind /dev:
 
 ```
-# Verify signature (recommended)
-gpg --verify stage3-*.tar.xz.asc stage3-*.tar.xz
-
-# Extract Stage3
-# x:extract p:preserve permissions v:verbose f:specify file --numeric-owner:use numeric IDs
-tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner
-
-```
-
-__4.3 Copy DNS and Mount Pseudo-Filesystems__
-
-```
-cp --dereference /etc/resolv.conf /mnt/gentoo/etc/ # Copy DNS configuration
-mount --types proc /proc /mnt/gentoo/proc          # Mount process information
-mount --rbind /sys /mnt/gentoo/sys                 # Bind mount system information
-mount --rbind /dev /mnt/gentoo/dev                 # Bind mount device nodes
-mount --rbind /run /mnt/gentoo/run                 # Bind mount runtime information
-mount --make-rslave /mnt/gentoo/sys                # Set as slave mount (prevents affecting host on unmount)
+mount --rbind /dev /mnt/gentoo/dev
 mount --make-rslave /mnt/gentoo/dev
+
+```
+
+
+-Bind /proc:
+
+```
+mount --rbind /proc /mnt/gentoo/proc
+mount --make-rslave /mnt/gentoo/proc
+
+```
+
+-Bind /sys:
+
+```
+mount --rbind /sys /mnt/gentoo/sys
+mount --make-rslave /mnt/gentoo/sys
+
+```
+
+-Bind /run:
+
+```
+mount --rbind /run /mnt/gentoo/run
 mount --make-rslave /mnt/gentoo/run
 
 ```
 
 
-__4.4 Enter chroot__
+-Copy DNS configuration:
 
 ```
-chroot /mnt/gentoo /bin/bash    # Switch root directory to new system
-source /etc/profile             # Load environment variables
-export PS1="(chroot) ${PS1}"    # Modify prompt to distinguish environment
+cp --dereference /etc/resolv.conf /mnt/gentoo/etc/resolv.conf
 
 ```
 
 
-__5. Initialize Portage and make.conf__
-
-__5.1 Sync Tree__
+-Enter the Gentoo installation:
 
 ```
-emerge-webrsync   # Get the latest Portage snapshot (faster than rsync)
-emerge --sync     # Sync Portage tree (get latest ebuilds)
-emerge --ask app-editors/neovim # Install Vim editor (recommended)
-eselect editor list          # List available editors
-eselect editor set nvim        # Set Vim as default editor
+chroot /mnt/gentoo /bin/bash
 
 ```
 
-Configure mirror (choose one):
+-Load the Gentoo environment:
 
 ```
-emerge -av -1 app-portage/mirrorselect
-mirrorselect -i -o >> /etc/portage/make.conf
-# Or manually set a mirror from the official list:
-# https://www.gentoo.org/downloads/mirrors/
-# set necessary keyrings
-getuto
+source /etc/profile
 
 ```
 
-__5.2 make.conf Example__
 
-Edit /etc/portage/make.conf:
-
-```
-vim /etc/portage/make.conf
+-Set the prompt:
 
 ```
-<details>
-    <summary>Adjust the -j value in MAKEOPTS to match your CPU core count (e.g., use -j4 for a 4-core CPU).</summary>
-
+export PS1="(chroot) $PS1"
 
 ```
+
+Check:
+
+```
+ping -c 3 gentoo.org
+
+```
+
+_Step 7 — Configure /etc/portage/make.conf_
+
+-Create/edit:
+
+```
+nano /etc/portage/make.conf
+
+```
+
+Use:
+
+```
+
 # These settings were set by the catalyst build script that automatically
 # built this stage.
 # Please consult /usr/share/portage/config/make.conf.example for a more
@@ -509,94 +463,337 @@ FEATURES="${FEATURES} getbinpkg binpkg-request-signature"
 
 ```
 
-</details>
 
-CPU Instruction Set Optimization (CPU_FLAGS_X86) (Click to Expand)
 
-o let Portage know which CPU instruction sets your processor supports (e.g., AES, AVX, SSE4.2), configure CPU_FLAGS_X86.
 
-Install detection tool:
+__Why Broadwell?__
 
-```emerge --ask app-portage/cpuid2cpuflags```
+The 2017 MacBook Air uses Intel Broadwell-era hardware, and `-march=broadwell` is appropriate
+if your particular CPU is actually Broadwell.
 
-Run detection and write to config:
+-Confirm it:
 
 ```
-cpuid2cpuflags >> /etc/portage/make.conf
+lscpu | grep -E 'Model name|Architecture'
 
 ```
 
-__6. Profile, System Settings & Localization__
 
-__6.1 Choose Profile__
+-You can also:
 
 ```
-eselect profile list          # List all available profiles
-eselect profile set <number>  # Set the selected profile
-emerge -avuDNg @world          # Update system to match new profile
+grep 'model name' /proc/cpuinfo | head -1
 
 ```
 
-Common options:
+__**_If it reports a different CPU generation, don't use `-march=broadwell.`_**__
+
+Also, `-O2` is intentional. Don't use `-O3` just because it sounds faster; for Gentoo system packages,
+`-O2` is the sensible default.
+
+__**_Step 8 — Sync Portage_**__
 
 ```
-  [1]   default/linux/amd64/23.0 (stable) x
-  [2]   default/linux/amd64/23.0/systemd (stable) *
-  [3]   default/linux/amd64/23.0/desktop (stablei) x
+emerge-webrsync
 
 ```
 
-__6.2 Timezone and Locale__
+- Update the repository metadata:
 
 ```
-# Set timezone (use your actual timezone)
-# List available timezones:
-ls /usr/share/zoneinfo/
-ls -l /usr/share/zoneinfo/Africa/
-# Examples: UTC, America/New_York, Europe/London, Asia/Tokyo, Australia/Sydney
-ln -sf ../usr/share/zoneinfo/Africa/Lagos /etc/localtime
+emerge --sync
+
+```
+
+__**_Step 9 — Select the systemd profile_**__
+
+- List profiles:
+
+```
+eselect profile list
+
+```
+
+- Look for something resembling:
+
+```
+default/linux/amd64/23.0/systemd
+
+```
+
+__or the currently supported Gentoo systemd profile.__
+
+
+- Set the appropriate index:
+
+```
+eselect profile set <INDEX>
+
+```
+
+- For example:
+
+```
+eselect profile set 4
+
+```
+
+
+Use the number actually shown by your eselect profile list; _don't copy_ `set 4` unless that's what your system shows.
+
+-Verify:
+
+```
+eselect profile show
+
+```
+
+__**_Step 10 — Configure timezone_**__
+
+
+- For your system:
+
+```
+echo "Africa/Lagos" > /etc/timezone
+
+```
+
+- Then run:
+
+```
 emerge --config sys-libs/timezone-data
-2026-08-23                      # Verify
-nvim /etc/locale.gen            # set locale
-en_US.UTF-8 UTF-8               # For a normal English setup, uncomment
-locale-gen                      # Generate selected locales
-eselect locale set en_US.utf8   # Set system default locale
-env-update && source /etc/profile && export PS1="(chroot) ${PS1}"
 
 ```
 
-__6.3 Hostname and Network Configuration__
-
-Set hostname:
+- Verify:
 
 ```
-echo "gentoo" > /etc/hostname
+#bash
 
-```
-
-Network manager options:
-
-```
-emerge --ask net-misc/networkmanager
-# OpenRC:
-rc-update add NetworkManager default
-# systemd:
-systemctl enable NetworkManager
+date
 
 ```
 
+__**_Step 11 — Configure locale_**__
 
-__6.4 Configure fstab__
 
-genfstab ships in the sys-fs/genfstab package (originally from Arch)
+- Edit:
 
+```
+# bash
+
+nano /etc/locale.gen
+
+```
+
+- Make sure this line is enabled:
+
+```
+en_US.UTF-8 UTF-8
+
+```
+
+- Then:
+
+```
+#bash
+
+locale-gen
+
+```
+
+
+- Select it:
+
+```
+#bash
+
+eselect locale list
+
+```
+
+- Then:
+
+```
+#bash
+
+eselect locale set en_US.utf8
+
+```
+
+
+- Update environment:
+
+```
+#bash
+
+env-update
+source /etc/profile
+
+```
+
+- Check:
+
+- locale
+
+
+__**_Step 12 — Install the required packages_**__
+
+- Install `firmware, encryption, Btrfs, kernel and GRUB2` tools:
+
+
+```
+#bash
+
+emerge \
+    sys-kernel/linux-firmware \
+    sys-fs/cryptsetup \
+    sys-fs/btrfs-progs \
+    sys-kernel/gentoo-kernel-bin \
+    sys-boot/grub:2\
+    firmware/intel-microcode
+
+
+```
+
+
+
+__**_Step 13 — Select the kernel_**__
+
+- List kernels:
+
+```
+eselect kernel list
+
+```
+
+
+- Verify:
+
+```
+ls -l /usr/src/linux
+
+```
+
+
+
+- Check:
+
+```
+#bash
+
+ls -lh /boot
+
+```
+
+__**_Step 14 - Install Filesystem Tools_**__
+
+- Run:
+
+```
+emerge --ask sys-fs/e2fsprogs  # ext4
+emerge --ask sys-fs/xfsprogs   # XFS
+emerge --ask sys-fs/dosfstools # FAT/vfat (required for EFI partition)
+emerge --ask sys-fs/btrfs-progs # Btrfs
+
+
+```
+
+
+__**_Step 16 — Get the actual UUIDs_**__
+
+
+- Run:
+
+```
+#bash
+
+blkid
+
+```
+
+__You need two different UUIDs:__
+
+- EFI UUID
+
+Something like:
+
+```
+/dev/sda1: UUID="XXXX-XXXX" TYPE="vfat"
+LUKS UUID
+
+```
+
+- Something like:
+
+```
+/dev/sda2: UUID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" TYPE="crypto_LUKS"
+
+```
+
+- And the Btrfs filesystem has its own UUID:
+
+```
+blkid /dev/mapper/cryptroot
+
+```
+
+- You'll see:
+
+```
+TYPE="btrfs"
+UUID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+```
+
+Save these values somewhere temporarily.
+
+
+__**_Step 17 — Configure /etc/crypttab_**__
+
+- Create:
+
+```
+nano /etc/crypttab
+
+```
+
+- Put:
+
+```
+cryptroot UUID=<YOUR-LUKS-UUID> none luks
+
+```
+
+For example:
+
+```
+cryptroot UUID=12345678-abcd-1234-abcd-123456789abc none luks
+
+```
+
+NOTE! Use the UUID from /dev/sda2, not the Btrfs UUID.
+
+
+- Check:
+
+```
+cat /etc/crypttab
+
+```
+
+
+__**_Step 18 — Configure /etc/fstab_**___
+
+<details>
+    <summary> __genfstab ships in the sys-fs/genfstab package (originally from Arch)__</summary>
 
 ```
 emerge --ask sys-fs/genfstab
 
 ```
 
-Standard usage (run outside `chroot`):
+- Standard usage (run outside `chroot`):
 
 ```
 # 1. Confirm all partitions are correctly mounted
@@ -611,18 +808,9 @@ cat /mnt/gentoo/etc/fstab
 
 ```
 
-If you've already `chrooted` into the new system, you can:
+- If you've already `chrooted` into the new system, you can:
 
-Method 1: Run inside `chroot` (simplest)
-
-```
-emerge --ask sys-fs/genfstab
-genfstab -U / >> /etc/fstab
-nvim /etc/fstab  # Check and clean up extra entries (e.g., /proc, /sys, /dev)
-
-```
-
-Method 1: Run inside `chroot` (simplest)
+Run inside `chroot` (simplest)
 
 ```
 emerge --ask sys-fs/genfstab
@@ -630,272 +818,443 @@ genfstab -U / >> /etc/fstab
 vim /etc/fstab  # Check and clean up extra entries (e.g., /proc, /sys, /dev)
 
 ```
+</details>
 
-Method 2: Open a new terminal window (LiveGUI)
 
-If using a Live environment with a GUI (like the official Gentoo LiveGUI), open a new terminal:
-
-```
-genfstab -U /mnt/gentoo >> /mnt/gentoo/etc/fstab
+- Get the Btrfs UUID:
 
 ```
-
-Method 3: TTY switch (Minimal ISO)
-
-1. Press Ctrl+Alt+F2 to switch to a new TTY (Live environment)
-2. Install and run:
-
-```
-emerge --ask sys-fs/genfstab
-genfstab -U /mnt/gentoo >> /mnt/gentoo/etc/fstab
-
-```
-
-3. Press Ctrl+Alt+F1 to return to `chroot`
-
-Prerequisite: every partition must already be mounted correctly (including Btrfs subvolumes and unlocked LUKS partitions) before you run `genfstab`
-
-
-Method B: Manual Edit
-
-1. Get partition UUIDs
-
-```
-blkid
-
-```
-Output example:
-
-```
-/dev/nvme0n1p1: UUID="7E91-5869" TYPE="vfat" PARTLABEL="EFI"
-/dev/nvme0n1p2: UUID="7fb33b5d-..." TYPE="swap" PARTLABEL="swap"
-/dev/nvme0n1p3: UUID="8c08f447-..." TYPE="xfs" PARTLABEL="root"
-
-```
-
-2. Edit `fstab`
-
-```
-nvim /etc/fstab
-
-```
-
-Basic configuration example (ext4/xfs):
-
-```
-# <UUID>                                   <Mount>      <Type> <Options>         <dump> <fsck>
-UUID=7E91-5869                             /efi         vfat   defaults,noatime  0      2
-UUID=7fb33b5d-4cff-47ff-ab12-7b461b5d6e13  none         swap   sw                0      0
-UUID=8c08f447-c79c-4fda-8c08-f447c79ce690  /            xfs    defaults,noatime  0      1
+blkid /dev/mapper/cryptroot
 
 ```
 
 
-fstab fields
-Field	Meaning
-UUID	Unique filesystem identifier (get it from blkid)
-Mount	Mount point (none for swap)
-Type	`vfat`, `ext4`, `xfs`, `btrfs`, `swap`, etc.
-Options	Comma-separated mount options
-dump	Backup flag — usually `0`
-fsck	Boot-time check order: `1` = root, `2` = others, `0` = skip
+- Then:
 
-
-
-Btrfs subvolume configuration
-
-With `genfstab`:
-
-If the `Btrfs` subvolumes are already mounted correctly, `genfstab -U` picks up `subvol=` automatically.
 
 ```
-# Confirm subvolume mounts
-mount | grep btrfs
-# Example output:
-#   /dev/nvme0n1p3 on /mnt/gentoo type btrfs (rw,noatime,compress=zstd:3,subvol=/@)
-
-# Generate
-genfstab -U /mnt/gentoo >> /mnt/gentoo/etc/fstab
-
-```
-
-Manual example:
-
-```
-# Root subvolume
-UUID=7b44c5eb-caa0-413b-9b7e-a991e1697465  /       btrfs  defaults,noatime,compress=zstd:3,discard=async,space_cache=v2,subvol=@       0 0
-
-# Home subvolume (same UUID, different subvolume)
-UUID=7b44c5eb-caa0-413b-9b7e-a991e1697465  /home   btrfs  defaults,noatime,compress=zstd:3,discard=async,space_cache=v2,subvol=@home   0 0
-
-# Swap (separate partition)
-UUID=7fb33b5d-4cff-47ff-ab12-7b461b5d6e13  none    swap   sw                                                                            0 0
-
-# EFI partition
-UUID=7E91-5869                             /efi    vfat   defaults,noatime,fmask=0022,dmask=0022                                        0 2
+nano /etc/fstab
 
 ```
 
 
-Common `Btrfs` mount options
-
-Option	             Meaning
-`compress=zstd:3`	     `zstd` compression at level 3 (good performance/ratio balance)
-`discard=async`	          Async TRIM (recommended for SSDs)
-`space_cache=v2`	      v2 space cache (default; better performance)
-`subvol=@`	              The subvolume to mount
-`noatime`	              Skip access-time updates (slight performance win)
-
-
-
-Notes
-
-   - All subvolumes of the same Btrfs partition share the same UUID.
-   - Always use blkid to read your real UUIDs.
-
-
-
-__7. Kernel and Firmware__
-
-__7.1 Quick Option: Pre-compiled Kernel__
+- Use:
 
 ```
-emerge --ask sys-kernel/gentoo-kernel-bin
+# EFI
+UUID=XXXX-XXXX  /efi        vfat    defaults,noatime                         0 2
+
+# Btrfs root
+UUID=YOUR-BTRFS-UUID  /            btrfs   noatime,compress=zstd:3,subvol=@          0 0
+
+# Home
+UUID=YOUR-BTRFS-UUID  /home        btrfs   noatime,compress=zstd:3,subvol=@home      0 0
+
+# Snapshots
+UUID=YOUR-BTRFS-UUID  /snapshots   btrfs   noatime,compress=zstd:3,subvol=@snapshots 0 0
+
+# Swap subvolume
+UUID=YOUR-BTRFS-UUID  /swap        btrfs   noatime,subvol=@swap                       0 0
+
+# Swapfile
+/swap/swapfile        none         swap    defaults                                  0 0
+Important
 
 ```
 
-Remember to regenerate the bootloader configuration after kernel upgrades.
+
+- The Btrfs entries use:
+
+`YOUR-BTRFS-UUID` not the `LUKS UUID`.
+
+Systemd will unlock:
+
+
+`LUKS UUID`
+    ↓
+`cryptroot`
+    ↓
+`Btrfs UUID`
+
+
+__**_Step 19 — Configure the hostname_**__
+
+```
+echo "macgentoOser" > /etc/hostname
+
+```
+
+__**_Step 20 — Configure networking_**__
+
+- Install network manager:
+
+``` 
+emerge --ask net-misc/networkmanager
+
+```
+
+Then enable it:
+
+```
+systemctl enable NetworkManager.service
+
+```
+
+__**_Step 22 — Install GRUB for the MacBook's UEFI_**__
+
+First make sure the EFI directory is mounted:
+
+- mountpoint /efi
+
+Then:
+
+```
+grub-install \
+    --target=x86_64-efi \
+    --efi-directory=/efi \
+    --bootloader-id=Gentoo
+
+```
+
+
+If successful, you'll get an installation-success message.
+
+
+__**_Step 23 — Configure GRUB_**__
+
+- Edit:
+
+```
+nano /etc/default/grub
+
+```
+
+- Use:
+
+```
+GRUB_DISTRIBUTOR="Gentoo"
+GRUB_TIMEOUT=5
+GRUB_ENABLE_CRYPTODISK=y
+GRUB_CMDLINE_LINUX="rd.luks.uuid=YOUR-LUKS-UUID root=/dev/mapper/cryptroot rootfstype=btrfs rootflags=subvol=@ rw"
+
+```
+
+
+__**_Step 24 — Generate GRUB configuration_**__
 
 ```
 grub-mkconfig -o /boot/grub/grub.cfg
 
 ```
 
-__7.2 Install Firmware and Microcode__
+- Check:
 
 ```
-mkdir -p /etc/portage/package.license
-# Accept the Linux firmware license terms
-echo 'sys-kernel/linux-firmware linux-fw-redistributable no-source-code' > /etc/portage/package.license/linux-firmware
-
-# Pick the installkernel USE flags that match your bootloader, so dist-kernel
-# upgrades automatically regenerate the bootloader config. Pick ONE row:
-#   GRUB users          → 'sys-kernel/installkernel dracut grub'
-#   systemd-boot users  → 'sys-kernel/installkernel dracut systemd systemd-boot'
-#   Limine / other      → 'sys-kernel/installkernel dracut' (bootloader handled manually)
-echo 'sys-kernel/installkernel dracut grub' > /etc/portage/package.use/installkernel
-
-emerge --ask sys-kernel/linux-firmware
-emerge --ask sys-firmware/intel-microcode  # Intel CPU users
+grep -E 'linux|root=' /boot/grub/grub.cfg | head
 
 ```
 
+__**_Step 25 — Root password_**__
 
-__8. Base Tools__
 
-__8.1 System Service Tools__
-
-systemd includes built-in logging and scheduled task services, no additional installation needed.
-
-Time synchronization
+- Set your root password:
 
 ```
-systemctl enable --now systemd-timesyncd
+passwd
 
 ```
 
-__8.2 Filesystem Tools__
+__**_Step 26 — Create a normal user_**__
 
-Install tools for your chosen filesystem (required):
 
-```
-emerge --ask sys-fs/e2fsprogs  # ext4
-emerge --ask sys-fs/xfsprogs   # XFS
-emerge --ask sys-fs/dosfstools # FAT/vfat (required for EFI partition)
-emerge --ask sys-fs/btrfs-progs # Btrfs
+- Don't run your desktop session as root.
+
+For example:
 
 ```
-
-__9. Create Users and Permissions__
-
-```
-passwd root # Set root password
-useradd -m -G wheel,video,audio,plugdev,network username # Create user and add to common groups
-passwd username # Set user password
-emerge --ask app-admin/sudo
+useradd -m -G users,wheel,audio,video,input,plugdev -s /bin/bash optimist23
 
 ```
 
-Allow users in the wheel group to execute commands as root by editing the sudoers file:
+- Set password:
 
 ```
-visudo
+passwd optimist23
 
 ```
 
-Uncomment the following line (remove the # at the beginning):
+
+- Enable wheel access:
+
+```
+EDITOR=nano visudo
+
+```
+
+- Uncomment:
 
 ```
 %wheel ALL=(ALL:ALL) ALL
 
 ```
 
-__10. Install Bootloader__
+__**_Step 28 — Check the installation before rebooting_**__
 
-__10.1 Option A: GRUB (Recommended/Standard)__
-
-GRUB is the most feature-complete bootloader with the best compatibility, and supports automatic Windows detection.
-
-1. Install and configure
+- Check your mounts:
 
 ```
-emerge --ask sys-boot/grub:2
-# Install to ESP (--bootloader-id=Gentoo automatically creates a separate directory, avoiding conflicts)
-grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=Gentoo
+findmnt
 
 ```
 
-2. Multi-OS configuration (Windows/Linux/other)
-
-If you have Windows or other Linux distributions installed, enable os-prober to automatically detect them:
+- Check Btrfs:
 
 ```
-emerge --ask sys-boot/os-prober
-# Enable os-prober (disabled by default for security)
-echo 'GRUB_DISABLE_OS_PROBER=false' >> /etc/default/grub
+btrfs filesystem show
 
 ```
 
-3. Generate configuration file
+- Check subvolumes:
 
 ```
-grub-mkconfig -o /boot/grub/grub.cfg
+btrfs subvolume list /
 
 ```
 
-__11. Final Steps__
+- Check crypttab:
 
-__11.1 Final Checklist__
+```
+cat /etc/crypttab
 
-1. emerge --info runs without errors
+```
 
-2. UUIDs in /etc/fstab are correct (verify again with blkid)
+- Check fstab:
 
-3. Root and regular user passwords have been set
+```
 
-4. grub-mkconfig has been run or bootctl/Limine configuration is complete
+mount -a
+findmnt --verify
+findmnt -t btrfs
+cat /etc/fstab
 
-5. If using LUKS, confirm initramfs includes cryptsetup
+```
 
-__11.2 Exit Chroot and Reboot__
+- Check GRUB:
 
-After confirming everything is correct, exit the chroot environment and unmount:
+```
+grep GRUB_CMDLINE_LINUX /etc/default/grub
+
+```
+
+- Check EFI:
+
+```
+find /efi -maxdepth 3 -type f
+
+```
+
+- Check kernel:
+
+```
+ls -lh /boot
+
+```
+
+- check USE FLAGS
+
+```
+emerge --info
+
+```
+
+__**_Step 29 — Leave the chroot_**__
 
 ```
 exit
-umount -l /mnt/gentoo/dev{/shm,/pts,}
-umount -R /mnt/gentoo
-swapoff -a
-reboot
 
 ```
+
+
+__**_Step 30 — Unmount everything_**__
+
+- From the live environment:
+
+```
+swapoff -a
+
+```
+
+- Then:
+
+```
+umount -R /mnt/gentoo
+
+```
+
+
+- If something refuses to unmount:
+
+```
+umount -Rl /mnt/gentoo
+
+```
+
+- Check:
+
+```
+mount | grep gentoo
+
+```
+
+There should be nothing mounted under `/mnt/gentoo`.
+
+
+__**_Step 31 — Close LUKS_**__
+
+cryptsetup close cryptroot
+
+- Verify:
+
+```
+ls /dev/mapper
+
+```
+
+cryptroot should no longer be there.
+
+
+__**_Step 32 — Reboot_**__
+reboot
+
+
+    You should get:
+
+    Mac EFI
+       ↓
+    Gentoo GRUB
+       ↓
+    LUKS password
+       ↓
+    cryptroot
+       ↓
+    Btrfs @
+       ↓
+    Gentoo systemd
+    
+
+Check that systemd is actually PID 1:
+
+ps -p 1 -o comm=
+
+Expected:
+
+systemd
+
+- Check the encrypted volume:
+
+```
+lsblk -f
+
+```
+
+- You should see approximately:
+
+```
+    sda
+    ├─sda1      vfat
+    └─sda2      crypto_LUKS
+       └─cryptroot
+          └─    btrfs
+
+
+```          
+
+
+
+- Check Btrfs:
+
+```
+findmnt -t btrfs
+
+```
+
+
+You should have:
+
+
+```
+    /
+    ├── @
+    ├── @home
+    ├── @snapshots
+    └── @swap
+
+```
+
+
+Check swap:
+
+```
+swapon --show
+free -h
+
+```
+
+__One MacBook-specific issue: Broadcom Wi-Fi__
+
+
+
+After the first boot, check:
+
+```
+lspci -nn | grep -i -E 'network|wireless'
+
+```
+
+and:
+
+```
+ip link
+
+```
+
+
+
+Final architecture
+
+This corrected version gives you the setup you were aiming for:
+
+                 MacBook Air 2017
+                       │
+                       ▼
+                    UEFI
+                       │
+                       ▼
+                 Gentoo GRUB
+                       │
+                       ▼
+                    LUKS2
+                       │
+                /dev/mapper/cryptroot
+                       │
+                       ▼
+                    Btrfs
+                       │
+        ┌──────────────┼──────────────┐
+        ▼              ▼              ▼
+       @             @home        @snapshots
+        │
+        ▼
+      Gentoo
+        │
+        ▼
+      systemd
+        │
+     networkmanager
+        
+        
+       
+        @swap
+           │
+           └── 4 GiB Btrfs swapfile
+
