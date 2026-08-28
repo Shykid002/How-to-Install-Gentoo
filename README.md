@@ -814,7 +814,7 @@ __**_Step 14 - Install Filesystem Tools_**__
 ```
 
 
-__**_Step 16 — Get the actual UUIDs_**__
+__**_Step 15 — Get the actual UUIDs_**__
 
 
 - Run:
@@ -871,7 +871,7 @@ Something like:
 Save these values somewhere temporarily.
 
 
-__**_Step 17 — Configure /etc/crypttab_**__
+__**_Step 16 — Configure /etc/crypttab_**__
 
 - Create:
 
@@ -914,7 +914,7 @@ NOTE! Use the UUID from /dev/sda2, not the Btrfs UUID.
 ```
 
 
-__**_Step 18 — Configure /etc/fstab_**___
+__**_Step 17 — Configure /etc/fstab_**___
 
 <details>
     <summary> __genfstab ships in the sys-fs/genfstab package (originally from Arch)__</summary>
@@ -1021,7 +1021,7 @@ Systemd will unlock:
     `Btrfs UUID`
 
 
-__**_Step 19 — Configure the hostname_**__
+__**_Step 18 — Configure the hostname_**__
 
 ```
 !#bash
@@ -1030,7 +1030,7 @@ __**_Step 19 — Configure the hostname_**__
 
 ```
 
-__**_Step 20 — Configure networking_**__
+__**_Step 19 — Configure networking_**__
 
 - Install network manager:
 
@@ -1050,7 +1050,7 @@ Then enable it:
 
 ```
 
-__**_Step 22 — Install GRUB for the MacBook's UEFI_**__
+__**_Step 20 — Install GRUB for the MacBook's UEFI_**__
 
 First make sure the EFI directory is mounted:
 
@@ -1072,7 +1072,7 @@ Then:
 If successful, you'll get an installation-success message.
 
 
-__**_Step 23 — Configure GRUB_**__
+__**_Step 21 — Configure GRUB_**__
 
 - Edit:
 
@@ -1096,7 +1096,7 @@ __**_Step 23 — Configure GRUB_**__
 ```
 
 
-__**_Step 24 — Generate GRUB configuration_**__
+__**_Step 22 — Generate GRUB configuration_**__
 
 ```
 !#bash
@@ -1114,7 +1114,7 @@ __**_Step 24 — Generate GRUB configuration_**__
 
 ```
 
-__**_Step 25 — Root password_**__
+__**_Step 23 — Root password_**__
 
 
 - Set your root password:
@@ -1126,7 +1126,7 @@ __**_Step 25 — Root password_**__
 
 ```
 
-__**_Step 26 — Create a normal user_**__
+__**_Step 24 — Create a normal user_**__
 
 
 - Don't run your desktop session as root.
@@ -1168,7 +1168,7 @@ For example:
 
 ```
 
-__**_Step 28 — Check the installation before rebooting_**__
+__**_Step 25 — Check the installation before rebooting_**__
 
 - Check your mounts:
 
@@ -1254,7 +1254,7 @@ __**_Step 28 — Check the installation before rebooting_**__
 
 ```
 
-__**_Step 29 — Leave the chroot_**__
+__**_Step 26 — Leave the chroot_**__
 
 ```
 !#bash
@@ -1264,7 +1264,7 @@ __**_Step 29 — Leave the chroot_**__
 ```
 
 
-__**_Step 30 — Unmount everything_**__
+__**_Step 27 — Unmount everything_**__
 
 - From the live environment:
 
@@ -1306,7 +1306,7 @@ __**_Step 30 — Unmount everything_**__
 There should be nothing mounted under `/mnt/gentoo`.
 
 
-__**_Step 31 — Close LUKS_**__
+__**_Step 28 — Close LUKS_**__
 
 cryptsetup close cryptroot
 
@@ -1322,7 +1322,7 @@ cryptsetup close cryptroot
 cryptroot should no longer be there.
 
 
-__**_Step 32 — Reboot_**__
+__**_Step 29 — Reboot_**__
 reboot
 
 
