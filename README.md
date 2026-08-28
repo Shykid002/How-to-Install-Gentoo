@@ -7,7 +7,7 @@ MacBook Air 2017 — copy-paste-ready installation
 
 The resulting layout will be:
 
-```
+    ```
 
     /dev/sda
     ├── /dev/sda1       EFI System Partition
@@ -23,7 +23,7 @@ The resulting layout will be:
                           └── swapfile
 
 
-``` 
+    ``` 
 
 
 _Step 1 — Boot the Live USB_
