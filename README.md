@@ -796,6 +796,27 @@ __**_Step 13 — Select the kernel_**__
 
 ```
 
+- install dracut
+
+```
+emerge --ask sys-kernel/dracut
+
+```
+
+
+- Put this lines in a dracut configuration file inside /etc/dracut.conf.d/.
+
+
+```
+mkdir -p /etc/dracut.conf.d
+nano /etc/dracut.conf.d/gentoo.conf
+
+hostonly="yes"
+add_dracutmodules+=" crypt btrfs "
+filesystems+=" btrfs "
+
+```
+
 __**_Step 14 - Install Filesystem Tools_**__
 
 - Run:
