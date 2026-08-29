@@ -1199,6 +1199,13 @@ For example:
 
 ```
 
+- Install sudo:
+- 
+
+```
+emerge app-admin/sudo
+
+```
 
 - Enable wheel access:
 
