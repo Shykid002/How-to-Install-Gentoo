@@ -817,6 +817,15 @@ filesystems+=" btrfs "
 
 ```
 
+
+- Regenerate the initramfs
+  
+
+```
+dracut --force /boot/initramfs-6.18.43-gentoo-dist-bin.img 6.18.43-gentoo-dist-bin
+
+```
+
 __**_Step 14 - Install Filesystem Tools_**__
 
 - Run:
