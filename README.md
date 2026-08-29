@@ -759,7 +759,7 @@ __**_Step 12 — Install the required packages_**__
         sys-fs/btrfs-progs \
         sys-kernel/gentoo-kernel-bin \
         sys-boot/grub:2\
-        firmware/intel-microcode
+        sys-firmware/intel-microcode
 
 
 ```
