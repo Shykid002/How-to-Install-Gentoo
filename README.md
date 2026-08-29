@@ -1053,20 +1053,28 @@ __**_Step 20 — Install GRUB for the MacBook's UEFI_**__
 - Edit the GRUB Configuration
 
   ```
+  
     nano /etc/default/grub
 
   ```
 
-  - Add or uncomment the following line anywhere in the file
+- Add or uncomment the following line anywhere in the file
 
   ```
+  
     GRUB_ENABLE_CRYPTODISK=y
 
   ```
 
 First make sure the EFI directory is mounted:
 
+
 - mountpoint /efi
+
+```
+nano /etc/fstab
+
+```
 
 Then:
 
