@@ -41,7 +41,7 @@ Boot a Gentoo Minimal Installation CD/USB or another Linux live environment.
 - Check the disks first:
 
 ```
-!#bash
+#bash
 
 lsblk -f
 
@@ -61,7 +61,7 @@ Do not blindly assume `/dev/sda2` is correct. On some systems the disk may appea
 Check networking:
 
 ```
-!#bash
+#bash
 
     ping -c 3 gentoo.org
 
@@ -80,7 +80,7 @@ Check networking:
 - Verify them:
 
 ```
-!#bash
+#bash
 
     echo "EFI:  $DEV_EFI"
     echo "LUKS: $DEV_LUKS"
@@ -96,7 +96,7 @@ __**_Step 2 — Create the LUKS2 + Btrfs storage layout_**__
 - First, make absolutely sure:
 
 ```
-!#bash
+#bash
 
     lsblk -f "$DEV_LUKS"
 
@@ -105,7 +105,7 @@ __**_Step 2 — Create the LUKS2 + Btrfs storage layout_**__
 - Then create the LUKS2 container:
 
 ```
-!#bash
+#bash
 
     cryptsetup luksFormat --type luks2 "$DEV_LUKS"
 
@@ -114,7 +114,7 @@ __**_Step 2 — Create the LUKS2 + Btrfs storage layout_**__
 -Open it:
 
 ```
-!#bash
+#bash
 
     cryptsetup open "$DEV_LUKS" "$MAPPER_NAME"
 
@@ -124,7 +124,7 @@ __**_Step 2 — Create the LUKS2 + Btrfs storage layout_**__
 - Verify:
 
 ```
-!#bash
+#bash
 
     lsblk -f
 
@@ -133,7 +133,7 @@ __**_Step 2 — Create the LUKS2 + Btrfs storage layout_**__
 - You should now see:
 
 ```
-!#bash
+#bash
 
     cryptroot
 
@@ -142,7 +142,7 @@ __**_Step 2 — Create the LUKS2 + Btrfs storage layout_**__
 - Create the Btrfs filesystem:
 
 ```
-!#bash
+#bash
 
     mkfs.btrfs -L gentoo_root "$LUKS_PATH"
 
@@ -151,7 +151,7 @@ __**_Step 2 — Create the LUKS2 + Btrfs storage layout_**__
 - Mount the Btrfs filesystem temporarily:
 
 ```
-!#bash
+#bash
 
     mkdir -p /mnt/gentoo
     mount "$LUKS_PATH" /mnt/gentoo
@@ -162,7 +162,7 @@ __**_Step 2 — Create the LUKS2 + Btrfs storage layout_**__
 - Create the subvolumes:
 
 ```
-!#bash
+#bash
 
     btrfs subvolume create /mnt/gentoo/@
     btrfs subvolume create /mnt/gentoo/@home
@@ -174,7 +174,7 @@ __**_Step 2 — Create the LUKS2 + Btrfs storage layout_**__
 - Check them:
 
 ```
-!#bash
+#bash
 
     btrfs subvolume list /mnt/gentoo
 
@@ -183,7 +183,7 @@ __**_Step 2 — Create the LUKS2 + Btrfs storage layout_**__
 - Unmount:
 
 ```
-!#bash
+#bash
 
     umount /mnt/gentoo
 
@@ -194,7 +194,7 @@ __**_Step 3 — Mount the final Btrfs layout_**__
 - Mount root:
 
 ```
-!#bash
+#bash
 
     mount -o noatime,compress=zstd:3,subvol=@ "$LUKS_PATH" /mnt/gentoo
 
@@ -204,7 +204,7 @@ __**_Step 3 — Mount the final Btrfs layout_**__
 - Create directories:
 
 ```
-!#bash
+#bash
 
     mkdir -p /mnt/gentoo/{home,snapshots,swap,efi}
 
@@ -213,7 +213,7 @@ __**_Step 3 — Mount the final Btrfs layout_**__
 - Mount /home:
 
 ```
-!#bash
+#bash
 
     mount -o noatime,compress=zstd:3,subvol=@home \
         "$LUKS_PATH" /mnt/gentoo/home
@@ -223,7 +223,7 @@ __**_Step 3 — Mount the final Btrfs layout_**__
 - Mount snapshots:
 
 ```
-!#bash
+#bash
 
     mount -o noatime,compress=zstd:3,subvol=@snapshots \
         "$LUKS_PATH" /mnt/gentoo/snapshots
@@ -234,7 +234,7 @@ __**_Step 3 — Mount the final Btrfs layout_**__
 - Mount swap subvolume:
 
 ```
-!#bash
+#bash
 
     mount -o noatime,subvol=@swap \
         "$LUKS_PATH" /mnt/gentoo/swap
@@ -245,7 +245,7 @@ __**_Step 3 — Mount the final Btrfs layout_**__
 - Mount EFI:
 
 ```
-!#bash
+#bash
 
     mount "$DEV_EFI" /mnt/gentoo/efi
 
@@ -255,7 +255,7 @@ __**_Step 3 — Mount the final Btrfs layout_**__
 - Check everything:
 
 ```
-!#bash
+#bash
 
     findmnt -R /mnt/gentoo
 
@@ -265,7 +265,7 @@ __**_Step 3 — Mount the final Btrfs layout_**__
 - You should have something along the lines of:
 
 ```
-!#bash
+#bash
 
     /mnt/gentoo
     /mnt/gentoo/home
@@ -284,7 +284,7 @@ For Btrfs, use the filesystem's swapfile support rather than simply creating a n
 -First check your Btrfs tools:
 
 ```
-!#bash
+#bash
 
     btrfs --version
 
@@ -293,7 +293,7 @@ For Btrfs, use the filesystem's swapfile support rather than simply creating a n
 - Create a 4 GiB swapfile:
 
 ```
-!#bash
+#bash
 
     btrfs filesystem mkswapfile --size 4g /mnt/gentoo/swap/swapfile
 
@@ -302,7 +302,7 @@ For Btrfs, use the filesystem's swapfile support rather than simply creating a n
 - Activate it:
 
 ```
-!#bash
+#bash
 
     swapon /mnt/gentoo/swap/swapfile
 
@@ -312,7 +312,7 @@ For Btrfs, use the filesystem's swapfile support rather than simply creating a n
 - Verify:
 
 ```
-!#bash
+#bash
 
     swapon --show
 
@@ -322,7 +322,7 @@ For Btrfs, use the filesystem's swapfile support rather than simply creating a n
 - You should see:
 
 ```
-!#bash
+#bash
 
     /mnt/gentoo/swap/swapfile
 
@@ -337,7 +337,7 @@ __**_Step 5 — Download the Gentoo Stage 3/_**__
 - Enter the installation root:
 
 ```
-!#bash
+#bash
 
     cd /mnt/gentoo
 
@@ -349,7 +349,7 @@ Gentoo for your installation date.
 For example, once you've selected the current amd64 systemd desktop Stage 3, download it with:
 
 ```
-!#bash
+#bash
 
     wget '<CURRENT_STAGE3_URL>'
 
@@ -358,7 +358,7 @@ For example, once you've selected the current amd64 systemd desktop Stage 3, dow
 - Then extract:
 
 ```
-!#bash
+#bash
 
     tar xpvf stage3-*.tar.xz \
         --xattrs-include='*.*' \
@@ -369,7 +369,7 @@ For example, once you've selected the current amd64 systemd desktop Stage 3, dow
 -Verify:
 
 ```
-!#bash
+#bash
 
     ls
 
@@ -405,7 +405,7 @@ _Step 6 — Prepare the chroot_
 -Bind /dev:
 
 ```
-!#bash
+#bash
 
     mount --rbind /dev /mnt/gentoo/dev
     mount --make-rslave /mnt/gentoo/dev
@@ -416,7 +416,7 @@ _Step 6 — Prepare the chroot_
 -Bind /proc:
 
 ```
-!#bash
+#bash
 
     mount --rbind /proc /mnt/gentoo/proc
     mount --make-rslave /mnt/gentoo/proc
@@ -426,7 +426,7 @@ _Step 6 — Prepare the chroot_
 -Bind /sys:
 
 ```
-!#bash
+#bash
 
     mount --rbind /sys /mnt/gentoo/sys
     mount --make-rslave /mnt/gentoo/sys
@@ -436,7 +436,7 @@ _Step 6 — Prepare the chroot_
 -Bind /run:
 
 ```
-!#bash
+#bash
 
     mount --rbind /run /mnt/gentoo/run
     mount --make-rslave /mnt/gentoo/run
@@ -447,7 +447,7 @@ _Step 6 — Prepare the chroot_
 -Copy DNS configuration:
 
 ```
-!#bash
+#bash
 
     cp --dereference /etc/resolv.conf /mnt/gentoo/etc/resolv.conf
 
@@ -457,7 +457,7 @@ _Step 6 — Prepare the chroot_
 -Enter the Gentoo installation:
 
 ```
-!#bash
+#bash
 
     chroot /mnt/gentoo /bin/bash
 
@@ -466,7 +466,7 @@ _Step 6 — Prepare the chroot_
 -Load the Gentoo environment:
 
 ```
-!#bash
+#bash
 
     source /etc/profile
 
@@ -476,7 +476,7 @@ _Step 6 — Prepare the chroot_
 -Set the prompt:
 
 ```
-!#bash
+#bash
 
     export PS1="(chroot) $PS1"
 
@@ -485,7 +485,7 @@ _Step 6 — Prepare the chroot_
 Check:
 
 ```
-!#bash
+#bash
 
     ping -c 3 gentoo.org
 
@@ -496,7 +496,7 @@ _Step 7 — Configure /etc/portage/make.conf_
 -Create/edit:
 
 ```
-!#bash
+#bash
 
     nano /etc/portage/make.conf
 
@@ -559,7 +559,7 @@ if your particular CPU is actually Broadwell.
 -Confirm it:
 
 ```
-!#bash
+#bash
 
     lscpu | grep -E 'Model name|Architecture'
 
@@ -569,7 +569,7 @@ if your particular CPU is actually Broadwell.
 -You can also:
 
 ```
-!#bash
+#bash
 
     grep 'model name' /proc/cpuinfo | head -1
 
@@ -583,7 +583,7 @@ Also, `-O2` is intentional. Don't use `-O3` just because it sounds faster; for G
 __**_Step 8 — Sync Portage_**__
 
 ```
-!#bash
+#bash
     emerge-webrsync
 
 ```
@@ -591,7 +591,7 @@ __**_Step 8 — Sync Portage_**__
 - Update the repository metadata:
 
 ```
-!#bash
+#bash
 
     emerge --sync
 
@@ -602,7 +602,7 @@ __**_Step 9 — Select the systemd profile_**__
 - List profiles:
 
 ```
-!#bash
+#bash
 
     eselect profile list
 
@@ -611,7 +611,7 @@ __**_Step 9 — Select the systemd profile_**__
 - Look for something resembling:
 
 ```
-!#bash
+#bash
 
     default/linux/amd64/23.0/systemd
 
@@ -623,7 +623,7 @@ __or the currently supported Gentoo systemd profile.__
 - Set the appropriate index:
 
 ```
-!#bash
+#bash
 
     eselect profile set <INDEX>
 
@@ -632,7 +632,7 @@ __or the currently supported Gentoo systemd profile.__
 - For example:
 
 ```
-!#bash
+#bash
 
     eselect profile set 4
 
@@ -644,7 +644,7 @@ Use the number actually shown by your eselect profile list; _don't copy_ `set 4`
 -Verify:
 
 ```
-!#bash
+#bash
 
     eselect profile show
 
@@ -656,7 +656,7 @@ __**_Step 10 — Configure timezone_**__
 - For your system:
 
 ```
-!#bash
+#bash
 
     echo "Africa/Lagos" > /etc/timezone
 
@@ -665,7 +665,7 @@ __**_Step 10 — Configure timezone_**__
 - Then run:
 
 ```
-!#bash
+#bash
 
     emerge --config sys-libs/timezone-data
 
@@ -674,7 +674,7 @@ __**_Step 10 — Configure timezone_**__
 - Verify:
 
 ```
-!#bash
+#bash
 
     date
 
@@ -686,7 +686,7 @@ __**_Step 11 — Configure locale_**__
 - Edit:
 
 ```
-!#bash
+#bash
 
     nano /etc/locale.gen
 
@@ -695,7 +695,7 @@ __**_Step 11 — Configure locale_**__
 - Make sure this line is enabled:
 
 ```
-!#bash
+#bash
 
     en_US.UTF-8 UTF-8
 
@@ -704,7 +704,7 @@ __**_Step 11 — Configure locale_**__
 - Then:
 
 ```
-!#bash
+#bash
 
     locale-gen
 
@@ -714,7 +714,7 @@ __**_Step 11 — Configure locale_**__
 - Select it:
 
 ```
-!#bash
+#bash
 
     eselect locale list
 
@@ -723,7 +723,7 @@ __**_Step 11 — Configure locale_**__
 - Then:
 
 ```
-!#bash
+#bash
 
     eselect locale set en_US.utf8
 
@@ -733,7 +733,7 @@ __**_Step 11 — Configure locale_**__
 - Update environment:
 
 ```
-!#bash
+#bash
 
     env-update
     source /etc/profile
@@ -751,7 +751,7 @@ __**_Step 12 — Install the required packages_**__
 
 
 ```
-!#bash
+#bash
 
     emerge \
         sys-kernel/linux-firmware \
@@ -765,13 +765,12 @@ __**_Step 12 — Install the required packages_**__
 ```
 
 
-
 __**_Step 13 — Select the kernel_**__
 
 - List kernels:
 
 ```
-!#bash
+#bash
 
     eselect kernel list
 
@@ -781,18 +780,17 @@ __**_Step 13 — Select the kernel_**__
 - Verify:
 
 ```
-!#bash
+#bash
 
     ls -l /usr/src/linux
 
 ```
 
 
-
 - Check:
 
 ```
-!#bash
+#bash
 
     ls -lh /boot
 
@@ -803,7 +801,7 @@ __**_Step 14 - Install Filesystem Tools_**__
 - Run:
 
 ```
-!#bash
+#bash
 
     emerge --ask sys-fs/e2fsprogs  # ext4
     emerge --ask sys-fs/xfsprogs   # XFS
@@ -820,7 +818,7 @@ __**_Step 15 — Get the actual UUIDs_**__
 - Run:
 
 ```
-!#bash
+#bash
 
     blkid
 
@@ -833,7 +831,7 @@ __You need two different UUIDs:__
 Something like:
 
 ```
-!#bash
+#bash
 
     /dev/sda1: UUID="XXXX-XXXX" TYPE="vfat"
     LUKS UUID
@@ -843,7 +841,7 @@ Something like:
 - Something like:
 
 ```
-!#bash
+#bash
 
     /dev/sda2: UUID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" TYPE="crypto_LUKS"
 
@@ -852,7 +850,7 @@ Something like:
 - And the Btrfs filesystem has its own UUID:
 
 ```
-!#bash
+#bash
 
     blkid /dev/mapper/cryptroot
 
@@ -861,7 +859,7 @@ Something like:
 - You'll see:
 
 ```
-!#bash
+#bash
 
     TYPE="btrfs"
     UUID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
@@ -876,8 +874,7 @@ __**_Step 16 — Configure /etc/crypttab_**__
 - Create:
 
 ```
-
-!#bash
+#bash
 
     nano /etc/crypttab
 
@@ -886,7 +883,7 @@ __**_Step 16 — Configure /etc/crypttab_**__
 - Put:
 
 ```
-!#bash
+#bash
 
     cryptroot UUID=<YOUR-LUKS-UUID> none luks
 
@@ -895,19 +892,19 @@ __**_Step 16 — Configure /etc/crypttab_**__
 For example:
 
 ```
-!#bash
+#bash
 
     cryptroot UUID=12345678-abcd-1234-abcd-123456789abc none luks
 
 ```
 
-NOTE! Use the UUID from /dev/sda2, not the Btrfs UUID.
+NOTE Use the UUID from /dev/sda2, not the Btrfs UUID.
 
 
 - Check:
 
 ```
-!#bash
+#bash
 
     cat /etc/crypttab
 
@@ -920,7 +917,7 @@ __**_Step 17 — Configure /etc/fstab_**___
     <summary> __genfstab ships in the sys-fs/genfstab package (originally from Arch)__</summary>
 
 ```
-!#bash
+#bash
 
     emerge --ask sys-fs/genfstab
 
@@ -929,7 +926,7 @@ __**_Step 17 — Configure /etc/fstab_**___
 - Standard usage (run outside `chroot`):
 
 ```
-    !#bash
+#bash
 
     #1. Confirm all partitions are correctly mounted
 
@@ -951,7 +948,7 @@ __**_Step 17 — Configure /etc/fstab_**___
 Run inside `chroot` (simplest)
 
 ```
-!#bash
+#bash
 
     emerge --ask sys-fs/genfstab
     genfstab -U / >> /etc/fstab
@@ -964,7 +961,7 @@ Run inside `chroot` (simplest)
 - Get the Btrfs UUID:
 
 ```
-!#bash
+#bash
 
     blkid /dev/mapper/cryptroot
 
@@ -975,7 +972,7 @@ Run inside `chroot` (simplest)
 
 
 ```
-!#bash
+#bash
 
     nano /etc/fstab
 
@@ -1024,7 +1021,7 @@ Systemd will unlock:
 __**_Step 18 — Configure the hostname_**__
 
 ```
-!#bash
+#bash
 
     echo "macgentoOser" > /etc/hostname
 
@@ -1035,7 +1032,7 @@ __**_Step 19 — Configure networking_**__
 - Install network manager:
 
 ```
-!#bash
+#bash
 
     emerge --ask net-misc/networkmanager
 
@@ -1044,7 +1041,7 @@ __**_Step 19 — Configure networking_**__
 Then enable it:
 
 ```
-!#bash
+#bash
 
     systemctl enable NetworkManager.service
 
@@ -1059,7 +1056,7 @@ First make sure the EFI directory is mounted:
 Then:
 
 ```
-!#bash
+#bash
 
     grub-install \
         --target=x86_64-efi \
@@ -1077,7 +1074,7 @@ __**_Step 21 — Configure GRUB_**__
 - Edit:
 
 ```
-!#bash
+#bash
 
     nano /etc/default/grub
 
@@ -1086,7 +1083,7 @@ __**_Step 21 — Configure GRUB_**__
 - Use:
 
 ```
-!#bash
+#bash
 
     GRUB_DISTRIBUTOR="Gentoo"
     GRUB_TIMEOUT=5
@@ -1099,7 +1096,7 @@ __**_Step 21 — Configure GRUB_**__
 __**_Step 22 — Generate GRUB configuration_**__
 
 ```
-!#bash
+#bash
 
     grub-mkconfig -o /boot/grub/grub.cfg
 
@@ -1108,7 +1105,7 @@ __**_Step 22 — Generate GRUB configuration_**__
 - Check:
 
 ```
-!#bash
+#bash
 
     grep -E 'linux|root=' /boot/grub/grub.cfg | head
 
@@ -1120,7 +1117,7 @@ __**_Step 23 — Root password_**__
 - Set your root password:
 
 ```
-!#bash
+#bash
 
     passwd
 
@@ -1134,7 +1131,7 @@ __**_Step 24 — Create a normal user_**__
 For example:
 
 ```
-!#bash
+#bash
 
     useradd -m -G users,wheel,audio,video,input,plugdev -s /bin/bash optimist23
 
@@ -1143,7 +1140,7 @@ For example:
 - Set password:
 
 ```
-!#bash
+#bash
 
     passwd optimist23
 
@@ -1153,7 +1150,7 @@ For example:
 - Enable wheel access:
 
 ```
-!#bash
+#bash
 
     EDITOR=nano visudo
 
@@ -1162,7 +1159,7 @@ For example:
 - Uncomment:
 
 ```
-!#bash
+#bash
 
     %wheel ALL=(ALL:ALL) ALL
 
@@ -1173,7 +1170,7 @@ __**_Step 25 — Check the installation before rebooting_**__
 - Check your mounts:
 
 ```
-!#bash
+#bash
 
     findmnt
 
@@ -1182,7 +1179,7 @@ __**_Step 25 — Check the installation before rebooting_**__
 - Check Btrfs:
 
 ```
-!#bash
+#bash
 
     btrfs filesystem show
 
@@ -1191,7 +1188,7 @@ __**_Step 25 — Check the installation before rebooting_**__
 - Check subvolumes:
 
 ```
-!#bash
+#bash
 
     btrfs subvolume list /
 
@@ -1200,7 +1197,7 @@ __**_Step 25 — Check the installation before rebooting_**__
 - Check crypttab:
 
 ```
-!#bash
+#bash
 
     cat /etc/crypttab
 
@@ -1209,7 +1206,7 @@ __**_Step 25 — Check the installation before rebooting_**__
 - Check fstab:
 
 ```
-!#bash
+#bash
 
     mount -a
     findmnt --verify
@@ -1221,7 +1218,7 @@ __**_Step 25 — Check the installation before rebooting_**__
 - Check GRUB:
 
 ```
-!#bash
+#bash
 
     grep GRUB_CMDLINE_LINUX /etc/default/grub
 
@@ -1230,7 +1227,7 @@ __**_Step 25 — Check the installation before rebooting_**__
 - Check EFI:
 
 ```
-!#bash
+#bash
 
     find /efi -maxdepth 3 -type f
 
@@ -1239,7 +1236,7 @@ __**_Step 25 — Check the installation before rebooting_**__
 - Check kernel:
 
 ```
-!#bash
+#bash
 
     ls -lh /boot
 
@@ -1248,7 +1245,7 @@ __**_Step 25 — Check the installation before rebooting_**__
 - check USE FLAGS
 
 ```
-!#bash
+#bash
 
     emerge --info
 
@@ -1257,7 +1254,7 @@ __**_Step 25 — Check the installation before rebooting_**__
 __**_Step 26 — Leave the chroot_**__
 
 ```
-!#bash
+#bash
 
     exit
 
@@ -1269,7 +1266,7 @@ __**_Step 27 — Unmount everything_**__
 - From the live environment:
 
 ```
-!#bash
+#bash
 
     swapoff -a
 
@@ -1278,7 +1275,7 @@ __**_Step 27 — Unmount everything_**__
 - Then:
 
 ```
-!#bash
+#bash
 
     umount -R /mnt/gentoo
 
@@ -1288,7 +1285,7 @@ __**_Step 27 — Unmount everything_**__
 - If something refuses to unmount:
 
 ```
-!#bash
+#bash
 
     umount -Rl /mnt/gentoo
 
@@ -1297,7 +1294,7 @@ __**_Step 27 — Unmount everything_**__
 - Check:
 
 ```
-!#bash
+#bash
 
     mount | grep gentoo
 
@@ -1313,7 +1310,7 @@ cryptsetup close cryptroot
 - Verify:
 
 ```
-!#bash
+#bash
 
     ls /dev/mapper
 
@@ -1340,7 +1337,7 @@ reboot
        ↓
     Gentoo systemd
     
-
+    
 Check that systemd is actually PID 1:
 
 ps -p 1 -o comm=
@@ -1352,7 +1349,7 @@ systemd
 - Check the encrypted volume:
 
 ```
-!#bash 
+#bash 
 
     lsblk -f
 
@@ -1371,11 +1368,10 @@ systemd
 ```          
 
 
-
 - Check Btrfs:
 
 ```
-!#bash
+#bash
 
     findmnt -t btrfs
 
@@ -1398,7 +1394,7 @@ You should have:
 Check swap:
 
 ```
-!#bash
+#bash
 
     swapon --show
     free -h
@@ -1412,7 +1408,7 @@ __One MacBook-specific issue: Broadcom Wi-Fi__
 After the first boot, check:
 
 ```
-!#bash
+#bash
 
     lspci -nn | grep -i -E 'network|wireless'
 
@@ -1421,12 +1417,11 @@ After the first boot, check:
 and:
 
 ```
-!#bash
+#bash
 
     ip link
 
 ```
-
 
 
 Final architecture
@@ -1467,3 +1462,5 @@ This corrected version gives you the setup you were aiming for:
            │
            └── 4 GiB Btrfs swapfile
 
+
+```
