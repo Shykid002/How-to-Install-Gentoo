@@ -257,7 +257,7 @@ __**_Step 3 — Mount the final Btrfs layout_**__
 ```
 !#bash
 
-    findmnt /mnt/gentoo
+    findmnt -R /mnt/gentoo
 
 ```
 
